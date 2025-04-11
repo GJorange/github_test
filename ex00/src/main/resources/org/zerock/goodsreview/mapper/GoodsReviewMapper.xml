@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="org.zerock.goodsreview.mapper.GoodsReviewMapper">
+  
+  	<!-- 일반 게시판 댓글 리스트 페이지 처리를 위한 전체 데이터 개수(글번호)를 가져오는 쿼리 -->
+  	<select id="getTotalRow" resultType="Long">
+  		SELECT count(*)
+  		FROM goodsReview
+<!--  		문제점: rno는 보통 고유 댓글 번호이므로 특정 댓글 하나의 개수만 조회하게 됩니다. -->
+<!--  		만약 전체 댓글 개수를 조회하려는 목적이라면, where rno = #{rno} 조건을 제거해야 합니다. -->
+  		WHERE rno = #{rno}
+  	</select>
+  	
+  	<!-- 일반 게시판 댓글 리스트 쿼리 -->
+  	<select id="list" resultType="org.zerock.goodsreview.vo.GoodsReviewVO">
+  		SELECT rno, no, title, content, id, writeDate, likeCount, status
+  		FROM
+  		(
+	  		SELECT rownum rnum, rno, no, title, content, id, writeDate, likeCount, status
+	  		FROM
+	  		(
+			  	SELECT r.rno, g.no, r.title, r.content, m.id, r.writeDate, r.likeCount, r.status
+			  	FROM goodsReview r, member m, goods g
+			  	WHERE
+			  		(r.no = #{no}) <!-- 일반조건 -->
+			  		and
+			  		(r.id = m.id) <!-- 조인조건 -->
+			  	order by rno desc
+		  	)
+	  	)
+	  	WHERE rnum between #{pageObject.startRow} and #{pageObject.endRow}
+  	</select>
+  	
+  	
+
+	<!-- 일반 게시판 댓글쓰기 쿼리 -->
+	<insert id="write">
+<!-- 		keyPorperty: 사용변수이름(GoodsReviewVO), resultType: 변수에 담기는 값 자료형  -->
+<!-- 			order="BEFORE" => 먼저실행한다. -->
+<!-- 		GoodsReviewVO 에 있는 no에 setter를 이용해서 시퀀스에 있는 값을 세팅 -->
+		<selectKey keyProperty="rno" resultType="Long" order="BEFORE">
+<!-- 			dual 은 더미테이블이다. : 테이블이 없는 값을 가져올때 사용 -->
+			SELECT goodsReview_seq.nextval FROM dual
+		</selectKey>
+		INSERT INTO goodsReview(rno, no, title, content, id, writeDate, likeCount, status)
+		VALUES(#{rno}, #{no, jdbcType=INTEGER}, #{title, jdbcType=VARCHAR}, #{content, jdbcType=VARCHAR}, #{id, jdbcType=VARCHAR},
+				#{writeDate, jdbcType=DATE}, #{likeCount, jdbcType=INTEGER}, #{status, jdbcType=VARCHAR})
+	</insert>
+	
+	
+</mapper>
+	
+	<!-- 일반 게시판 댓글수정 쿼리 -->
+	<!-- ![CDATA[]] 를 사용하면 특수문자를 string으로 인식하게 만들어준다. -->
+<!-- 	<update id="update"> -->
+<!-- 	<![CDATA[ -->
+<!-- 		update goodsReview -->
+<!-- 		set title = #{title}, content = #{content} -->
+<!-- 		where rno = #{rno} and id = #{id} -->
+<!-- 	]]> -->
+<!-- 	</update> -->
+	
+	<!-- 일반 게시판 댓글삭제 쿼리 -->
+<!-- 	<delete id="delete"> -->
+<!-- 		delete from goodsReview -->
+<!-- 		where rno = #{rno} and id = #{id} -->
+<!-- 	</delete> -->
